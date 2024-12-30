@@ -1,22 +1,43 @@
-FROM node:18
+# Этап сборки
+FROM node:18 AS builder
 
 WORKDIR /app
 
 # Копируем файлы зависимостей
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm config set registry https://registry.npmjs.org/ && \
-    npm install
+# Устанавливаем все зависимости
+RUN npm install
 
 # Копируем исходный код
 COPY . .
 
-# Собираем приложение
+# Устанавливаем переменные окружения для сборки
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
+
+# Собираем приложение
 RUN npm run build
 
-# Запускаем приложение
+# Этап production
+FROM node:18-slim
+
+WORKDIR /app
+
+# Копируем необходимые файлы из этапа сборки
+COPY --from=builder /app/next.config.mjs ./
+COPY --from=builder /app/public ./public
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/.next/standalone ./
+COPY --from=builder /app/.next/static ./.next/static
+
+# Устанавливаем переменные окружения для production
+ENV NODE_ENV production
+ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
-CMD ["npm", "start"]
+
+# Открываем порт
+EXPOSE 3000
+
+# Запускаем приложение
+CMD ["node", "server.js"]
