@@ -8,10 +8,18 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "http",
-        hostname: process.env.IMAGE_URL,
+        hostname: "176.124.212.65",
         pathname: "**",
       },
     ],
+  },
+  // Отключаем генерацию статических страниц
+  staticPages: false,
+  // Увеличиваем таймаут
+  staticPageGenerationTimeout: 180,
+  // Добавляем env переменные
+  env: {
+    NEXT_PUBLIC_API_URL: 'http://176.124.212.65'
   },
 };
 
