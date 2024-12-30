@@ -19,15 +19,13 @@ services:
   frontend:
     container_name: frontend
     build:
-      context: ./frontend
-      dockerfile: Dockerfile
+      context: frontend
       network: host
+    extra_hosts:
+      - "registry.npmjs.org:104.16.24.34"
     dns:
       - 8.8.8.8
       - 8.8.4.4
-    extra_hosts:
-      - "deb.debian.org:151.101.0.204"
-      - "registry.npmjs.org:104.16.24.34"
     expose:
       - "3000"
     environment:
@@ -53,12 +51,11 @@ services:
     restart: always
     entrypoint: /entrypoint.sh
     volumes:
-      - ./backend:/vitamins-backend
+      - ./:/vitamins-backend
       - static_volume:/vitamins-backend/staticfiles
       - media_volume:/vitamins-backend/media
     depends_on:
       - vitamins-db
-      - redis
     command: ["healthy-check.sh", "vitamins-db:5432"]
     environment:
       - TZ=Asia/Bishkek
@@ -67,7 +64,7 @@ services:
     container_name: telegram-bot
     build:
       context: backend
-      dockerfile: Dockerfile
+      network: host
     extra_hosts:
       - "pypi.org:151.101.1.63"
       - "files.pythonhosted.org:151.101.1.63"
@@ -79,10 +76,9 @@ services:
     restart: always
     entrypoint: /entrypoint_bot.sh
     volumes:
-      - ./backend:/telegram-bot
+      - ./:/telegram-bot
     depends_on:
       - vitamins-db
-      - redis
     command: ["healthy-check.sh", "vitamins-db:5432"]
     environment:
       - TZ=Asia/Bishkek
@@ -96,21 +92,11 @@ services:
       - pgdata:/var/lib/postgresql/data/
       - ../vitamin_backup.sql:/docker-entrypoint-initdb.d/vitamin_backup.sql
     env_file: backend/.env
-    environment:
-      - POSTGRES_DB=vitamins
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
 
   redis:
     image: "redis:alpine"
-    container_name: redis
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
 
 volumes:
   static_volume:
   media_volume:
   pgdata:
-  redis_data:
