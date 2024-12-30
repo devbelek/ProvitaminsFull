@@ -1,0 +1,18 @@
+.product-cards .swiper-pagination-bullet {
+  background-color: black;
+  opacity: 0.3;
+}
+
+.product-cards .swiper-pagination-bullet-active {
+  background-color: var(--main);
+  opacity: 1;
+}
+
+.product-cards .swiper-slide {
+  height: auto;
+}
+
+.product-cards .swiper {
+  height: auto;
+  padding-bottom: 50px;
+}
