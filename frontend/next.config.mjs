@@ -1,8 +1,6 @@
 /** @type {import('next').NextConfig} */
-
-const imageUrl = process.env.IMAGE_URL;
-
 const nextConfig = {
+  output: 'standalone',
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
@@ -10,11 +8,17 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "http",
-        hostname: imageUrl,
+        hostname: process.env.IMAGE_URL?.replace("/", "") || "176.124.212.65",
         pathname: "**",
       },
     ],
   },
+  env: {
+    DOMAIN_NAME: "176.124.212.65",
+    BASE_URL: "http://176.124.212.65/api/v1",
+    NEXT_PUBLIC_BASE_URL: "http://176.124.212.65/api/v1",
+    IMAGE_URL: "176.124.212.65"
+  }
 };
 
 export default nextConfig;
