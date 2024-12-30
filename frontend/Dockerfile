@@ -1,43 +1,21 @@
-# Этап сборки
 FROM node:18 AS builder
 
 WORKDIR /app
 
-# Копируем файлы зависимостей
+# Копируем только package.json и package-lock.json сначала
 COPY package*.json ./
 
-# Устанавливаем все зависимости
-RUN npm install
+# Устанавливаем зависимости
+RUN npm ci
 
-# Копируем исходный код
+# Копируем остальные файлы проекта
 COPY . .
 
-# Устанавливаем переменные окружения для сборки
+# Собираем приложение
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV NODE_ENV production
-
-# Собираем приложение
 RUN npm run build
 
-# Этап production
-FROM node:18-slim
-
-WORKDIR /app
-
-# Копируем необходимые файлы из этапа сборки
-COPY --from=builder /app/next.config.mjs ./
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/.next/standalone ./
-COPY --from=builder /app/.next/static ./.next/static
-
-# Устанавливаем переменные окружения для production
-ENV NODE_ENV production
-ENV NEXT_TELEMETRY_DISABLED 1
+# Запускаем
 ENV PORT 3000
-
-# Открываем порт
-EXPOSE 3000
-
-# Запускаем приложение
-CMD ["node", "server.js"]
+CMD ["npm", "start"]
