@@ -21,6 +21,13 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      network: host
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+    extra_hosts:
+      - "deb.debian.org:151.101.0.204"
+      - "registry.npmjs.org:104.16.24.34"
     expose:
       - "3000"
     environment:
