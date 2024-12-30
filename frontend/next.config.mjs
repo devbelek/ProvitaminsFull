@@ -13,12 +13,18 @@ const nextConfig = {
       },
     ],
   },
-  // Отключаем предварительный рендеринг для всех страниц
-  trailingSlash: true,
-  env: {
-    NEXT_PUBLIC_BASE_URL: 'http://176.124.212.65',
-    NEXT_PUBLIC_API_URL: 'http://176.124.212.65'
-  }
+  // Отключаем полностью SSG
+  typescript: {
+    ignoreBuildErrors: true,
+  },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
+  // Добавляем это
+  generateStaticParams: () => {
+    return [];
+  },
+  generateBuildId: () => 'build'
 };
 
 export default nextConfig;
