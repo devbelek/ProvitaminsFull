@@ -1,18 +1,18 @@
 # Этап сборки
-FROM node:18-alpine AS builder
+FROM node:18-alpine3.19 AS builder
 
-# Установка зависимостей для сборки
-RUN apk add --no-cache libc6-compat
+# Обновляем apk и устанавливаем зависимости
+RUN apk update && apk add --no-cache libc6-compat python3 make g++
 
 WORKDIR /app
 
 # Копируем файлы зависимостей
-COPY package.json ./
+COPY package*.json ./
 
-# Сначала устанавливаем все зависимости и создаем package-lock.json
+# Устанавливаем все зависимости
 RUN npm install
 
-# Добавляем critters и зависимости
+# Добавляем специфичные зависимости
 RUN npm install critters@0.0.20 \
     chalk@4.1.2 \
     css-select@5.1.0 \
@@ -33,10 +33,10 @@ ENV NODE_ENV production
 RUN npm run build
 
 # Этап production
-FROM node:18-alpine
+FROM node:18-alpine3.19
 
 # Установка необходимых пакетов
-RUN apk add --no-cache curl
+RUN apk update && apk add --no-cache curl
 
 WORKDIR /app
 
