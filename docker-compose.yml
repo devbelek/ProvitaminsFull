@@ -31,7 +31,7 @@ services:
     environment:
       - NODE_ENV=production
       - NEXT_PUBLIC_API_URL=http://176.124.212.65/api
-      - NEXT_TELEMETRY_DISABLED=1
+      - IMAGE_URL=176.124.212.65
     restart: always
     depends_on:
       - vitamins-backend
