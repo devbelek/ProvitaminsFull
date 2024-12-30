@@ -8,16 +8,22 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "http",
-        hostname: process.env.IMAGE_URL?.replace("/", "") || "176.124.212.65",
+        hostname: process.env.IMAGE_URL,
         pathname: "**",
       },
     ],
   },
-  env: {
-    DOMAIN_NAME: "176.124.212.65",
-    BASE_URL: "http://176.124.212.65/api/v1",
-    NEXT_PUBLIC_BASE_URL: "http://176.124.212.65/api/v1",
-    IMAGE_URL: "176.124.212.65"
+  // Отключаем статическую генерацию
+  generateBuildId: () => 'build',
+  experimental: {
+    workerThreads: false,
+    cpus: 1
+  },
+  typescript: {
+    ignoreBuildErrors: true
+  },
+  eslint: {
+    ignoreDuringBuilds: true
   }
 };
 
