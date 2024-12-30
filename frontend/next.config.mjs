@@ -13,14 +13,12 @@ const nextConfig = {
       },
     ],
   },
-  // Отключаем генерацию статических страниц
-  staticPages: false,
-  // Увеличиваем таймаут
-  staticPageGenerationTimeout: 180,
-  // Добавляем env переменные
+  // Отключаем предварительный рендеринг для всех страниц
+  trailingSlash: true,
   env: {
+    NEXT_PUBLIC_BASE_URL: 'http://176.124.212.65',
     NEXT_PUBLIC_API_URL: 'http://176.124.212.65'
-  },
+  }
 };
 
 export default nextConfig;
