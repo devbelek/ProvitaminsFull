@@ -1,6 +1,5 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  output: 'standalone',
   experimental: {
     missingSuspenseWithCSRBailout: false,
   },
@@ -8,23 +7,11 @@ const nextConfig = {
     remotePatterns: [
       {
         protocol: "http",
-        hostname: "176.124.212.65",
+        hostname: process.env.IMAGE_URL,
         pathname: "**",
       },
     ],
   },
-  // Отключаем полностью SSG
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  // Добавляем это
-  generateStaticParams: () => {
-    return [];
-  },
-  generateBuildId: () => 'build'
 };
 
 export default nextConfig;
