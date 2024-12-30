@@ -1,8 +1,5 @@
 # Этап сборки
-FROM node:18-alpine3.19 AS builder
-
-# Обновляем apk и устанавливаем зависимости
-RUN apk update && apk add --no-cache libc6-compat python3 make g++
+FROM node:18 AS builder
 
 WORKDIR /app
 
@@ -33,10 +30,10 @@ ENV NODE_ENV production
 RUN npm run build
 
 # Этап production
-FROM node:18-alpine3.19
+FROM node:18-slim
 
-# Установка необходимых пакетов
-RUN apk update && apk add --no-cache curl
+# Установка curl для healthcheck
+RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
