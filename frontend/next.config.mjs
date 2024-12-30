@@ -13,13 +13,6 @@ const nextConfig = {
       },
     ],
   },
-  // Добавляем эти настройки
-  env: {
-    NEXT_PUBLIC_API_URL: 'http://176.124.212.65/api'
-  },
-  // Отключаем статическую генерацию
-  staticPageGenerationTimeout: 0,
-  distDir: '.next'
 };
 
 export default nextConfig;
