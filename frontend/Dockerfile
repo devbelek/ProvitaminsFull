@@ -1,21 +1,30 @@
-FROM node:18 AS builder
+FROM node:18
 
 WORKDIR /app
 
-# Копируем только package.json и package-lock.json сначала
+# Копируем package.json
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm ci
+# Устанавливаем зависимости с выводом отладочной информации
+RUN npm install --verbose
 
-# Копируем остальные файлы проекта
+# Копируем исходники
 COPY . .
 
-# Собираем приложение
-ENV NEXT_TELEMETRY_DISABLED 1
-ENV NODE_ENV production
-RUN npm run build
+# Выводим список файлов для проверки
+RUN ls -la
 
-# Запускаем
-ENV PORT 3000
+# Проверяем содержимое next.config.mjs
+RUN cat next.config.mjs
+
+# Устанавливаем переменные окружения
+ENV NODE_ENV=production
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV IMAGE_URL="176.124.212.65"
+
+# Пытаемся собрать с выводом отладочной информации
+RUN npm run build --verbose || exit 1
+
+EXPOSE 3000
+
 CMD ["npm", "start"]
