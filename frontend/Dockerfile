@@ -1,10 +1,6 @@
 # Этап сборки
 FROM node:18 AS builder
 
-# Настройка DNS
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
-    echo "nameserver 8.8.4.4" >> /etc/resolv.conf
-
 WORKDIR /app
 
 # Копируем файлы зависимостей
@@ -12,7 +8,7 @@ COPY package*.json ./
 
 # Устанавливаем все зависимости
 RUN npm config set registry https://registry.npmjs.org/ && \
-    npm install --verbose
+    npm install
 
 # Добавляем специфичные зависимости
 RUN npm install critters@0.0.20 \
@@ -37,15 +33,6 @@ RUN npm run build
 # Этап production
 FROM node:18-slim
 
-# Настройка DNS
-RUN echo "nameserver 8.8.8.8" > /etc/resolv.conf && \
-    echo "nameserver 8.8.4.4" >> /etc/resolv.conf && \
-    echo "deb http://ftp.debian.org/debian bookworm main" > /etc/apt/sources.list && \
-    echo "deb http://ftp.debian.org/debian-security bookworm-security main" >> /etc/apt/sources.list && \
-    apt-get update && \
-    apt-get install -y curl && \
-    rm -rf /var/lib/apt/lists/*
-
 WORKDIR /app
 
 # Копируем необходимые файлы из этапа сборки
@@ -60,10 +47,6 @@ COPY --from=builder /app/node_modules/critters ./node_modules/critters
 ENV NODE_ENV production
 ENV NEXT_TELEMETRY_DISABLED 1
 ENV PORT 3000
-
-# Проверка работоспособности приложения
-HEALTHCHECK --interval=30s --timeout=30s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:3000/ || exit 1
 
 # Открываем порт
 EXPOSE 3000
