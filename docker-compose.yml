@@ -54,7 +54,7 @@ services:
     restart: always
     entrypoint: /entrypoint.sh
     volumes:
-      - ./:/vitamins-backend
+      - ./backend:/vitamins-backend
       - static_volume:/vitamins-backend/staticfiles
       - media_volume:/vitamins-backend/media
     depends_on:
@@ -79,7 +79,7 @@ services:
     restart: always
     entrypoint: /entrypoint_bot.sh
     volumes:
-      - ./:/telegram-bot
+      - ./backend:/telegram-bot
     depends_on:
       - vitamins-db
     command: ["healthy-check.sh", "vitamins-db:5432"]

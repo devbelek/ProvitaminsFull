@@ -22,5 +22,4 @@ RUN chmod +x /entrypoint.sh
 COPY entrypoint_bot.sh /entrypoint_bot.sh
 RUN chmod +x /entrypoint_bot.sh
 
-# Копирование остальных файлов проекта
-COPY . /vitamins-backend/
+# Не копируем все файлы, так как они будут монтироваться через volume
