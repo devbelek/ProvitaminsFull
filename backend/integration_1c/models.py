@@ -55,7 +55,7 @@ class Product1C(models.Model):
 
     name_en = models.CharField(max_length=255, verbose_name='Наименование (EN)')
     name = models.CharField(max_length=255, verbose_name='Наименование товара')
-    description = RichTextField(verbose_name='Описание товара')
+    description = RichTextField(verbose_name='Описание товара', default='')
     price = models.IntegerField(verbose_name='Цена')
     sale_price = models.IntegerField(verbose_name='Цена со скидкой', blank=True, null=True)
     status = models.CharField(max_length=20, choices=Product.ProductStatus.choices,
