@@ -64,7 +64,7 @@ class Product1C(models.Model):
     is_hit = models.BooleanField(default=False, verbose_name='Хит')
     is_sale = models.BooleanField(default=False, verbose_name='Акция')
     is_recommend = models.BooleanField(default=False, verbose_name='Рекомендуемый')
-    quantity = models.CharField(max_length=255, verbose_name='Количество в упаковке')
+    quantity = models.CharField(max_length=255, verbose_name='Количество в упаковке', default=0)
     vendor_code = models.CharField(max_length=255, verbose_name='Артикул')
     rating = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
