@@ -16,10 +16,6 @@ class Product1CSerializer(serializers.ModelSerializer):
         return super().to_internal_value(data)
 
     def create(self, validated_data):
-        # Добавляем необходимые поля с дефолтными значениями
-        validated_data['is_published'] = False
-        validated_data['published_product'] = False
-
         vendor_code = validated_data['vendor_code']
 
         # Проверяем существование товара в основном каталоге
@@ -33,7 +29,8 @@ class Product1CSerializer(serializers.ModelSerializer):
             main_product.status = validated_data['status']
             main_product.save()
 
-        # Создаем запись в Product1C
+        # Создаем запись в Product1C (убрали is_published, используем только published_product)
+        validated_data['published_product'] = False
         instance = Product1C.objects.create(**validated_data)
 
         # Создаем лог
@@ -48,13 +45,12 @@ class Product1CSerializer(serializers.ModelSerializer):
         return instance
 
     def update(self, instance, validated_data):
-        # Устанавливаем значения по умолчанию
-        instance.is_published = False
-        instance.published_product = False
-
-        # Обновляем остальные поля
+        # Обновляем поля
         for attr, value in validated_data.items():
             setattr(instance, attr, value)
 
+        # Устанавливаем published_product
+        instance.published_product = False
         instance.save()
+
         return instance
