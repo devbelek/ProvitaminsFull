@@ -94,6 +94,7 @@ class Product1CSerializer(serializers.ModelSerializer):
             instance.price = price
             instance.status = status
             instance.is_variation = is_variation
+            instance.is_published = False
 
             if is_variation and base_product_code:
                 base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
