@@ -8,11 +8,15 @@ class Product1CSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Product1C
-        fields = ('name_en', 'vendor_code', 'price', 'status', 'is_variation', 'base_product_code')
+        fields = ('name_en', 'name', 'vendor_code', 'price', 'status', 'is_variation', 'base_product_code')
 
     def create(self, validated_data):
         vendor_code = validated_data['vendor_code']
         name_en = validated_data['name_en']
+        # Автоматически заполняем name из name_en если name не предоставлен
+        if 'name' not in validated_data:
+            validated_data['name'] = name_en
+
         price = validated_data['price']
         status = validated_data['status']
         is_variation = validated_data.get('is_variation', False)
@@ -25,6 +29,7 @@ class Product1CSerializer(serializers.ModelSerializer):
             try:
                 # Обновляем существующий товар в основном каталоге
                 main_product.name_en = name_en
+                main_product.name = validated_data['name']  # Обновляем name
                 main_product.price = price
                 main_product.status = status
 
@@ -38,6 +43,7 @@ class Product1CSerializer(serializers.ModelSerializer):
                 # Создаем временную запись в 1С для логирования
                 instance = Product1C.objects.create(
                     name_en=name_en,
+                    name=validated_data['name'],  # Добавляем name
                     vendor_code=vendor_code,
                     price=price,
                     status=status,
@@ -79,6 +85,7 @@ class Product1CSerializer(serializers.ModelSerializer):
             }
 
             instance.name_en = name_en
+            instance.name = validated_data['name']  # Обновляем name
             instance.price = price
             instance.status = status
             instance.is_variation = is_variation
@@ -108,6 +115,7 @@ class Product1CSerializer(serializers.ModelSerializer):
 
                 instance = Product1C.objects.create(
                     name_en=name_en,
+                    name=validated_data['name'],  # Добавляем name
                     vendor_code=vendor_code,
                     price=price,
                     status=status,
