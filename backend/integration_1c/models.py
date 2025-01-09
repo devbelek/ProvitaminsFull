@@ -17,6 +17,22 @@ class ProductImage1C(models.Model):
 
 
 class Product1C(models.Model):
+    base_product = models.ForeignKey(
+        'marketplace.Product',
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name='product1c_variations',
+        verbose_name='Базовый товар',
+        help_text='Если это вариация, укажите базовый товар'
+    )
+    is_variation = models.BooleanField(
+        default=False,
+        verbose_name='Является вариацией',
+        help_text='Отметьте, если это вариация другого товара',
+        null=True,
+        blank=True,
+    )
     similar_products = models.ManyToManyField(
         'self',
         verbose_name="Похожие товары",
@@ -25,27 +41,34 @@ class Product1C(models.Model):
         help_text="Товары с похожими характеристиками (например, тот же продукт с другим вкусом)"
     )
 
-    categories = models.ManyToManyField(Category, verbose_name='Категории', related_name='products_1c')
+    categories = models.ManyToManyField(
+        Category,
+        verbose_name='Категории',
+        related_name='products_1c',
+        blank=True,
+        )
     brand = models.ForeignKey(
         Brand,
-        on_delete=models.SET_NULL,
+        on_delete=models.CASCADE,
         null=True,
         blank=True,
-        verbose_name='Бренд'
+        verbose_name='Бренд',
+        related_name='products_1c'
     )
     manufacturer_country = models.ForeignKey(
         Country,
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True, verbose_name='Страна производитель',
-        related_name='products_1c')
-
+        on_delete=models.CASCADE,
+        verbose_name='Страна производитель',
+        related_name='products_1c',
+        null=True
+    )
     form = models.ForeignKey(
         Form,
-        on_delete=models.SET_NULL,
-        null=True,
+        on_delete=models.CASCADE,
+        verbose_name='Форма',
+        related_name='products_1c',
         blank=True,
-        verbose_name='Форма'
+        null=True
     )
 
     flavor = models.CharField(max_length=255, verbose_name='Вкус', blank=True, null=True)
@@ -54,9 +77,9 @@ class Product1C(models.Model):
     dosageArray = models.URLField(blank=True, null=True)
 
     name_en = models.CharField(max_length=255, verbose_name='Наименование (EN)')
-    name = models.CharField(max_length=255, verbose_name='Наименование товара')
-    description = RichTextField(verbose_name='Описание товара', default='')
-    price = models.IntegerField(verbose_name='Цена')
+    name = models.CharField(max_length=255, verbose_name='Наименование товара', blank=True, null=True)
+    description = RichTextField(verbose_name='Описание товара', blank=True, null=True)
+    price = models.IntegerField(verbose_name='Цена', blank=True, null=True)
     sale_price = models.IntegerField(verbose_name='Цена со скидкой', blank=True, null=True)
     status = models.CharField(max_length=20, choices=Product.ProductStatus.choices,
                               default=Product.ProductStatus.in_stock,
@@ -64,7 +87,7 @@ class Product1C(models.Model):
     is_hit = models.BooleanField(default=False, verbose_name='Хит')
     is_sale = models.BooleanField(default=False, verbose_name='Акция')
     is_recommend = models.BooleanField(default=False, verbose_name='Рекомендуемый')
-    quantity = models.CharField(max_length=255, verbose_name='Количество в упаковке', default=0)
+    quantity = models.CharField(max_length=255, verbose_name='Количество в упаковке', blank=True, null=True)
     vendor_code = models.CharField(max_length=255, verbose_name='Артикул')
     rating = models.IntegerField(
         validators=[MinValueValidator(1), MaxValueValidator(5)],
@@ -80,6 +103,10 @@ class Product1C(models.Model):
 
     def __str__(self):
         return f"{self.name_en} ({self.vendor_code})"
+
+    class Meta:
+        verbose_name = 'Товар 1с'
+        verbose_name_plural = 'Товары 1с'
 
 
 class SyncLog(models.Model):

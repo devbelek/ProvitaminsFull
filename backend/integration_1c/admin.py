@@ -4,6 +4,8 @@ from .models import Product1C, SyncLog, ProductImage1C
 from marketplace.models import Product
 from django.contrib import messages
 from marketplace.admin import ProductImageInline
+from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
+from django.db import transaction
 
 
 class Product1CImageInline(admin.TabularInline):
@@ -12,69 +14,53 @@ class Product1CImageInline(admin.TabularInline):
     max_num = 3
 
 
-class SyncLogInline(admin.TabularInline):
-    model = SyncLog
-    extra = 0
-    readonly_fields = ('sync_type', 'status', 'message', 'created_at')
-    can_delete = False
-    max_num = 0
-
-    def has_add_permission(self, request, obj=None):
-        return False
+# class SyncLogInline(admin.TabularInline):
+#     model = SyncLog
+#     extra = 0
+#     readonly_fields = ('sync_type', 'status', 'message', 'created_at')
+#     can_delete = False
+#     max_num = 0
+#
+#     def has_add_permission(self, request, obj=None):
+#         return False
 
 
 @admin.register(Product1C)
-class Product1CAdmin(admin.ModelAdmin):
-    inlines = (SyncLogInline,)
+class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
+    inlines = (Product1CImageInline, )
+    filter_horizontal = ('similar_products',)
 
     list_display = (
         'id', 'name_en', 'name', 'brand', 'manufacturer_country',
-        'form', 'price', 'sale_price', 'status', 'published_product'
+        'form', 'price', 'sale_price', 'status', 'published_product', 'is_variation'
     )
-    list_display_links = ('id', 'name', 'name_en')
-    list_editable = ('price', 'sale_price', 'status', 'published_product')
+    list_display_links = ('id', 'name')
 
-    list_filter = [
-        ('published_product', admin.BooleanFieldListFilter),
-        ('brand', admin.RelatedFieldListFilter),
-        ('manufacturer_country', admin.RelatedFieldListFilter),
-        ('form', admin.RelatedFieldListFilter),
-        ('categories', admin.RelatedFieldListFilter),
-        ('status', admin.ChoicesFieldListFilter),
-        ('is_hit', admin.BooleanFieldListFilter),
-        ('is_sale', admin.BooleanFieldListFilter),
-        ('is_recommend', admin.BooleanFieldListFilter),
-        ('created_at', admin.DateFieldListFilter),
-    ]
-
-    search_fields = (
-        'name', 'name_en', 'description',
-        'flavor', 'dosage', 'vendor_code',
-        'brand__name', 'manufacturer_country__name'
+    list_filter = (
+        'categories', 'brand', 'manufacturer_country', 'form',
+        'is_hit', 'is_sale', 'status', 'rating', 'is_variation'
     )
-
+    list_editable = ('published_product',)
     fieldsets = (
         ('Основная информация', {
             'fields': (
-                'categories',
-                ('brand', 'manufacturer_country'),
-                'form',
-                ('name_en', 'name'),
-                ('flavor', 'dosage'),
-                'description',
-                ('price', 'sale_price'),
-                'status',
-                'quantity',
-                'vendor_code'
+                'categories', 'brand', 'manufacturer_country', 'form',
+                'name_en', 'name', 'description'
             )
         }),
-        ('Дополнительные настройки', {
+        ('Вариации товара', {
             'fields': (
-                'similar_products',
-                ('is_hit', 'is_sale', 'is_recommend'),
-                'rating',
+                'is_variation', 'base_product',
+                'flavor', 'dosage', 'quantity'
             ),
-            'classes': ('collapse',)
+            'classes': ('collapse',),
+        }),
+        ('Цены и статусы', {
+            'fields': (
+                'price', 'sale_price', 'status',
+                'is_hit', 'is_sale', 'is_recommend',
+                'rating', 'vendor_code'
+            )
         }),
         ('СЕО и публикация', {
             'fields': (
@@ -82,19 +68,28 @@ class Product1CAdmin(admin.ModelAdmin):
                 'published_product',
             ),
             'classes': ('collapse',)
-        }),
+        })
     )
 
-    filter_horizontal = ('categories', 'similar_products')
-    save_on_top = True
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "base_product":
+            kwargs["queryset"] = Product.objects.filter(
+                is_variation=False)
+            return db_field.formfield(**kwargs)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
     def get_queryset(self, request):
         return super().get_queryset(request).select_related(
-            'brand', 'manufacturer_country', 'form'
-        ).prefetch_related('categories', 'similar_products')
+            'brand',
+            'manufacturer_country',
+            'form',
+            'base_product'
+        ).prefetch_related(
+            'categories',
+            'similar_products',
+        )
 
     def published_status(self, obj):
-        # Проверяем существование товара в основном каталоге
         if Product.objects.filter(vendor_code=obj.vendor_code).exists():
             return format_html(
                 '<span style="color: green;">✔ Опубликован</span>'
@@ -107,50 +102,87 @@ class Product1CAdmin(admin.ModelAdmin):
 
     actions = ['publish_products', 'unpublish_products']
 
+    @transaction.atomic
     def publish_products(self, request, queryset):
         for product in queryset:
-            if not product.is_published:
-                # Проверяем наличие обязательных полей
+            if not product.published_product:
+                # Проверка обязательных полей
                 if not all([product.brand, product.manufacturer_country]):
                     self.message_user(
                         request,
                         f'Товар {product.name_en} не может быть опубликован. '
                         f'Заполните обязательные поля (Бренд, Страна производитель)',
-                        level='ERROR'
+                        level=messages.ERROR
                     )
                     continue
 
-                # Проверяем описание
-                if not product.description:
-                    product.description = ""  # Устанавливаем пустую строку если нет описания
-
                 try:
-                    # Создаем новый товар в основном каталоге
+                    # Проверяем базовый товар для вариации
+                    base_in_marketplace = None
+                    if product.is_variation:
+                        # Проверяем наличие базового товара
+                        if not product.base_product:
+                            self.message_user(
+                                request,
+                                f'Товар {product.name_en} не может быть опубликован. '
+                                f'Укажите базовый товар для вариации.',
+                                level=messages.ERROR
+                            )
+                            continue
+
+                        # Проверяем существование базового товара в основном каталоге
+                        base_in_marketplace = product.base_product  # Теперь base_product - это прямая ссылка на Product
+                        if not base_in_marketplace:
+                            self.message_user(
+                                request,
+                                f'Не удалось найти базовый товар для {product.name_en}',
+                                level=messages.ERROR
+                            )
+                            continue
+
+                    # Создаем новый товар
                     new_product = Product.objects.create(
                         name=product.name or product.name_en,
+                        name_en=product.name_en,
                         vendor_code=product.vendor_code,
-                        price=product.price,
+                        price=product.price or 0,
                         status=product.status,
-                        description=product.description,
+                        description=product.description or "",
                         brand=product.brand,
                         manufacturer_country=product.manufacturer_country,
                         form=product.form,
-                        flavor=product.flavor,
-                        dosage=product.dosage,
+                        flavor=product.flavor or "",
+                        dosage=product.dosage or "",
                         sale_price=product.sale_price,
-                        is_hit=product.is_hit,
-                        is_sale=product.is_sale,
-                        is_recommend=product.is_recommend,
-                        quantity=product.quantity or "1",
+                        is_hit=product.is_hit or False,
+                        is_sale=product.is_sale or False,
+                        is_recommend=product.is_recommend or False,
+                        quantity=product.quantity or "",
                         rating=product.rating,
-                        seo_keywords=product.seo_keywords
+                        seo_keywords=product.seo_keywords or [],
+                        is_variation=product.is_variation,
+                        base_product=base_in_marketplace
                     )
-
-                    # Добавляем категории если есть
+#sdfsdf
+                    # Добавляем категории
                     if hasattr(product, 'categories'):
                         new_product.categories.set(product.categories.all())
 
-                    # Логируем публикацию
+                    # Копируем изображения
+                    for image in product.images.all():
+                        try:
+                            ProductImage.objects.create(
+                                product=new_product,
+                                image=image.image
+                            )
+                        except Exception as img_error:
+                            self.message_user(
+                                request,
+                                f'Ошибка при копировании изображения: {str(img_error)}',
+                                level=messages.WARNING
+                            )
+
+                    # Создаем лог
                     SyncLog.objects.create(
                         product_1c=product,
                         sync_type='publish',
@@ -158,32 +190,31 @@ class Product1CAdmin(admin.ModelAdmin):
                         message='Товар успешно опубликован в основном каталоге'
                     )
 
-                    # Удаляем товар из 1С
+                    # Удаляем товар из 1С после успешной публикации
                     product.delete()
 
                     self.message_user(
                         request,
                         f'Товар {product.name_en} успешно опубликован',
-                        level='SUCCESS'
+                        level=messages.SUCCESS
                     )
 
                 except Exception as e:
                     self.message_user(
                         request,
                         f'Ошибка при публикации товара {product.name_en}: {str(e)}',
-                        level='ERROR'
+                        level=messages.ERROR
                     )
 
     publish_products.short_description = 'Опубликовать выбранные товары'
 
+    @transaction.atomic
     def unpublish_products(self, request, queryset):
         for product in queryset:
-            # Находим соответствующий товар в основном каталоге
             main_product = Product.objects.filter(vendor_code=product.vendor_code).first()
             if main_product:
                 main_product.delete()
 
-                # Логируем снятие с публикации
                 SyncLog.objects.create(
                     product_1c=product,
                     sync_type='unpublish',
@@ -193,33 +224,43 @@ class Product1CAdmin(admin.ModelAdmin):
 
     unpublish_products.short_description = 'Снять с публикации'
 
+    @transaction.atomic
     def save_model(self, request, obj, form, change):
-        if obj.is_published:
-            # Проверяем обязательные поля перед публикацией
+        if obj.published_product:
             if not all([obj.brand, obj.manufacturer_country]):
                 messages.error(
                     request,
                     'Невозможно опубликовать товар. Заполните обязательные поля (Бренд, Страна производитель)'
                 )
-                obj.is_published = False
+                obj.published_product = False
                 super().save_model(request, obj, form, change)
                 return
 
-            # Если все проверки пройдены, публикуем товар
+            if obj.is_variation and obj.base_product:
+                base_product = Product.objects.filter(id=obj.base_product.id).first()
+                if not base_product:
+                    messages.error(
+                        request,
+                        'Базовый товар не найден в основном каталоге'
+                    )
+                    obj.published_product = False
+                    super().save_model(request, obj, form, change)
+                    return
+
             self.publish_products(request, Product1C.objects.filter(pk=obj.pk))
         else:
             super().save_model(request, obj, form, change)
 
 
-@admin.register(SyncLog)
-class SyncLogAdmin(admin.ModelAdmin):
-    list_display = ('product_1c', 'sync_type', 'status', 'created_at')
-    list_filter = ('sync_type', 'status', 'created_at')
-    search_fields = ('product_1c__name_en', 'product_1c__vendor_code', 'message')
-    readonly_fields = ('product_1c', 'sync_type', 'status', 'message', 'created_at')
-
-    def has_add_permission(self, request):
-        return False
-
-    def has_change_permission(self, request, obj=None):
-        return False
+# @admin.register(SyncLog)
+# class SyncLogAdmin(admin.ModelAdmin):
+#     list_display = ('product_1c', 'sync_type', 'status', 'created_at')
+#     list_filter = ('sync_type', 'status', 'created_at')
+#     search_fields = ('product_1c__name_en', 'product_1c__vendor_code', 'message')
+#     readonly_fields = ('product_1c', 'sync_type', 'status', 'message', 'created_at')
+#
+#     def has_add_permission(self, request):
+#         return False
+#
+#     def has_change_permission(self, request, obj=None):
+#         return False
