@@ -4,11 +4,9 @@ from marketplace.models import Product
 
 
 class Product1CSerializer(serializers.ModelSerializer):
-    base_product_code = serializers.CharField(write_only=True, required=False)
-
     class Meta:
         model = Product1C
-        fields = ('name_en', 'name', 'vendor_code', 'price', 'status', 'is_variation', 'base_product_code')
+        fields = ('name_en', 'name', 'vendor_code', 'price', 'status', 'is_variation')
 
     def to_internal_value(self, data):
         # Копируем значение name_en в name если name не предоставлен
@@ -18,133 +16,45 @@ class Product1CSerializer(serializers.ModelSerializer):
         return super().to_internal_value(data)
 
     def create(self, validated_data):
+        # Добавляем необходимые поля с дефолтными значениями
+        validated_data['is_published'] = False
+        validated_data['published_product'] = False
+
         vendor_code = validated_data['vendor_code']
-        name_en = validated_data['name_en']
-        price = validated_data['price']
-        status = validated_data['status']
-        is_variation = validated_data.get('is_variation', False)
-        base_product_code = validated_data.pop('base_product_code', None)
 
         # Проверяем существование товара в основном каталоге
         main_product = Product.objects.filter(vendor_code=vendor_code).first()
 
         if main_product:
-            try:
-                # Обновляем существующий товар в основном каталоге
-                main_product.name_en = name_en
-                main_product.name = validated_data['name']
-                main_product.price = price
-                main_product.status = status
+            # Обновляем существующий товар в основном каталоге
+            main_product.name_en = validated_data['name_en']
+            main_product.name = validated_data['name']
+            main_product.price = validated_data['price']
+            main_product.status = validated_data['status']
+            main_product.save()
 
-                if is_variation and base_product_code:
-                    base_product = Product.objects.filter(vendor_code=base_product_code).first()
-                    main_product.base_product = base_product
-                    main_product.is_variation = True
+        # Создаем запись в Product1C
+        instance = Product1C.objects.create(**validated_data)
 
-                main_product.save()
+        # Создаем лог
+        SyncLog.objects.create(
+            product_1c=instance,
+            sync_type='create' if not main_product else 'update',
+            status=True,
+            message=f'Товар {"создан" if not main_product else "обновлен"} в 1C. '
+                    f'Артикул: {vendor_code}, Name_EN: {validated_data["name_en"]}'
+        )
 
-                # Создаем временную запись в 1С для логирования
-                create_data = {
-                    'name_en': name_en,
-                    'name': validated_data['name'],
-                    'vendor_code': vendor_code,
-                    'price': price,
-                    'status': status,
-                    'is_variation': is_variation,
-                    'published_product': False,  # Изменено на published_product
-                    'is_published': False  # Добавляем is_published
-                }
-                instance = Product1C.objects.create(**create_data)
+        return instance
 
-                if is_variation and base_product_code:
-                    base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
-                    if base_product_1c:
-                        instance.base_product = base_product_1c
-                        instance.save()
+    def update(self, instance, validated_data):
+        # Устанавливаем значения по умолчанию
+        instance.is_published = False
+        instance.published_product = False
 
-                # Логируем обновление
-                SyncLog.objects.create(
-                    product_1c=instance,
-                    sync_type='update',
-                    status=True,
-                    message=(
-                        f'Товар обновлен в основном каталоге. '
-                        f'Артикул: {vendor_code}, Name_EN: {name_en}. '
-                        f'Старая цена: {main_product.price}, новая цена: {price}'
-                    )
-                )
+        # Обновляем остальные поля
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
 
-                instance.delete()
-                return validated_data
-
-            except Exception as e:
-                raise serializers.ValidationError(f"Ошибка при обновлении товара: {str(e)}")
-
-        # Если товара нет в основном каталоге
-        instance = Product1C.objects.filter(vendor_code=vendor_code).first()
-
-        if instance:
-            # Обновляем существующий товар в 1C
-            old_data = {
-                'name_en': instance.name_en,
-                'price': instance.price
-            }
-
-            instance.name_en = name_en
-            instance.name = validated_data['name']
-            instance.price = price
-            instance.status = status
-            instance.is_variation = is_variation
-            instance.is_published = False  # Добавляем is_published
-            instance.published_product = False  # Добавляем published_product
-
-            if is_variation and base_product_code:
-                base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
-                if base_product_1c:
-                    instance.base_product = base_product_1c
-
-            instance.save()
-
-            SyncLog.objects.create(
-                product_1c=instance,
-                sync_type='update',
-                status=True,
-                message=(
-                    f'Товар обновлен в 1C. '
-                    f'Name_EN: {old_data["name_en"]} -> {name_en}, '
-                    f'Цена: {old_data["price"]} -> {price}'
-                )
-            )
-        else:
-            try:
-                base_product_1c = None
-                if is_variation and base_product_code:
-                    base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
-
-                create_data = {
-                    'name_en': name_en,
-                    'name': validated_data['name'],
-                    'vendor_code': vendor_code,
-                    'price': price,
-                    'status': status,
-                    'is_variation': is_variation,
-                    'base_product': base_product_1c,
-                    'is_published': False,  # Добавляем is_published
-                    'published_product': False  # Добавляем published_product
-                }
-                instance = Product1C.objects.create(**create_data)
-
-                SyncLog.objects.create(
-                    product_1c=instance,
-                    sync_type='create',
-                    status=True,
-                    message=(
-                        f'Товар создан в 1C. '
-                        f'Артикул: {vendor_code}, Name_EN: {name_en}, '
-                        f'Цена: {price}'
-                    )
-                )
-            except Exception as e:
-                raise serializers.ValidationError(f"Ошибка при создании товара: {str(e)}")
-
+        instance.save()
         return instance
