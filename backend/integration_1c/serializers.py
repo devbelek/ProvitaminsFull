@@ -9,17 +9,17 @@ class Product1CSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product1C
         fields = ('name_en', 'name', 'vendor_code', 'price', 'status', 'is_variation', 'base_product_code')
-        extra_kwargs = {
-            'name': {'required': True}
-        }
+
+    def to_internal_value(self, data):
+        # Копируем значение name_en в name если name не предоставлен
+        if 'name_en' in data and 'name' not in data:
+            data = data.copy()
+            data['name'] = data['name_en']
+        return super().to_internal_value(data)
 
     def create(self, validated_data):
         vendor_code = validated_data['vendor_code']
         name_en = validated_data['name_en']
-        # Автоматически заполняем name из name_en если name не предоставлен
-        if 'name' not in validated_data:
-            validated_data['name'] = name_en
-
         price = validated_data['price']
         status = validated_data['status']
         is_variation = validated_data.get('is_variation', False)
