@@ -51,7 +51,7 @@ class Product1CSerializer(serializers.ModelSerializer):
                     'price': price,
                     'status': status,
                     'is_variation': is_variation,
-                    'is_published': False
+                    'published_product': False
                 }
                 instance = Product1C.objects.create(**create_data)
 
@@ -94,7 +94,7 @@ class Product1CSerializer(serializers.ModelSerializer):
             instance.price = price
             instance.status = status
             instance.is_variation = is_variation
-            instance.is_published = False
+            instance.published_product = False
 
             if is_variation and base_product_code:
                 base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
@@ -127,7 +127,7 @@ class Product1CSerializer(serializers.ModelSerializer):
                     'status': status,
                     'is_variation': is_variation,
                     'base_product': base_product_1c,
-                    'is_published': False
+                    'published_product': False
                 }
                 instance = Product1C.objects.create(**create_data)
 
