@@ -77,7 +77,7 @@ class Product1C(models.Model):
     dosageArray = models.URLField(blank=True, null=True)
 
     name_en = models.CharField(max_length=255, verbose_name='Наименование (EN)')
-    name = models.CharField(max_length=255, verbose_name='Наименование товара', null=True, blank=True)
+    name = models.CharField(max_length=255, verbose_name='Наименование товара', blank=True, null=True)
     description = RichTextField(verbose_name='Описание товара', blank=True, null=True)
     price = models.IntegerField(verbose_name='Цена', blank=True, null=True)
     sale_price = models.IntegerField(verbose_name='Цена со скидкой', blank=True, null=True)
