@@ -9,6 +9,9 @@ class Product1CSerializer(serializers.ModelSerializer):
     class Meta:
         model = Product1C
         fields = ('name_en', 'name', 'vendor_code', 'price', 'status', 'is_variation', 'base_product_code')
+        extra_kwargs = {
+            'name': {'required': True}
+        }
 
     def create(self, validated_data):
         vendor_code = validated_data['vendor_code']
@@ -41,16 +44,15 @@ class Product1CSerializer(serializers.ModelSerializer):
                 main_product.save()
 
                 # Создаем временную запись в 1С для логирования
-                instance = Product1C.objects.create(
-                    name_en=name_en,
-                    name=validated_data['name'],
-                    vendor_code=vendor_code,
-                    price=price,
-                    status=status,
-                    is_variation=is_variation,
-                    is_published=False,
-                    updated_at=None  # Это поле автоматически заполнится
-                )
+                create_data = {
+                    'name_en': name_en,
+                    'name': validated_data['name'],
+                    'vendor_code': vendor_code,
+                    'price': price,
+                    'status': status,
+                    'is_variation': is_variation
+                }
+                instance = Product1C.objects.create(**create_data)
 
                 if is_variation and base_product_code:
                     base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
@@ -91,7 +93,6 @@ class Product1CSerializer(serializers.ModelSerializer):
             instance.price = price
             instance.status = status
             instance.is_variation = is_variation
-            instance.is_published = False
 
             if is_variation and base_product_code:
                 base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
@@ -116,17 +117,16 @@ class Product1CSerializer(serializers.ModelSerializer):
                 if is_variation and base_product_code:
                     base_product_1c = Product1C.objects.filter(vendor_code=base_product_code).first()
 
-                instance = Product1C.objects.create(
-                    name_en=name_en,
-                    name=validated_data['name'],
-                    vendor_code=vendor_code,
-                    price=price,
-                    status=status,
-                    is_variation=is_variation,
-                    base_product=base_product_1c,
-                    is_published=False,
-                    updated_at=None  # Это поле автоматически заполнится
-                )
+                create_data = {
+                    'name_en': name_en,
+                    'name': validated_data['name'],
+                    'vendor_code': vendor_code,
+                    'price': price,
+                    'status': status,
+                    'is_variation': is_variation,
+                    'base_product': base_product_1c
+                }
+                instance = Product1C.objects.create(**create_data)
 
                 SyncLog.objects.create(
                     product_1c=instance,
