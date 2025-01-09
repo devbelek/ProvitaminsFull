@@ -68,7 +68,7 @@ class ProductAdmin(admin.ModelAdmin, DynamicArrayMixin):
 
     list_display = (
         'id', 'name_en', 'name', 'brand', 'manufacturer_country',
-        'form', 'price', 'is_variation'
+        'vendor_code', 'price', 'is_variation'
     )
     list_display_links = ('id', 'name')
     list_filter = (
