@@ -32,7 +32,7 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
 
     list_display = (
         'id', 'name_en', 'name', 'brand', 'manufacturer_country',
-        'vendor_code', 'price', 'sale_price', 'status', 'published_product', 'is_variation'
+        'form', 'price', 'sale_price', 'status', 'published_product', 'is_variation'
     )
     list_display_links = ('id', 'name')
 
