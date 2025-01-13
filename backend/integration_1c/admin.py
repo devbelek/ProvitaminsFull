@@ -1,11 +1,11 @@
 from django.contrib import admin
 from django.utils.html import format_html
-from .models import Product1C, SyncLog, ProductImage1C
-from marketplace.models import Product
 from django.contrib import messages
-from marketplace.admin import ProductImageInline
-from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
 from django.db import transaction
+from django_better_admin_arrayfield.admin.mixins import DynamicArrayMixin
+
+from .models import Product1C, SyncLog, ProductImage1C
+from marketplace.models import Product, ProductImage
 
 
 class Product1CImageInline(admin.TabularInline):
@@ -14,20 +14,9 @@ class Product1CImageInline(admin.TabularInline):
     max_num = 3
 
 
-# class SyncLogInline(admin.TabularInline):
-#     model = SyncLog
-#     extra = 0
-#     readonly_fields = ('sync_type', 'status', 'message', 'created_at')
-#     can_delete = False
-#     max_num = 0
-#
-#     def has_add_permission(self, request, obj=None):
-#         return False
-
-
 @admin.register(Product1C)
 class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
-    inlines = (Product1CImageInline, )
+    inlines = (Product1CImageInline,)
     filter_horizontal = ('similar_products',)
 
     list_display = (
@@ -41,6 +30,7 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
         'is_hit', 'is_sale', 'status', 'rating', 'is_variation'
     )
     list_editable = ('published_product',)
+
     fieldsets = (
         ('Основная информация', {
             'fields': (
@@ -73,8 +63,8 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
 
     def formfield_for_foreignkey(self, db_field, request, **kwargs):
         if db_field.name == "base_product":
-            kwargs["queryset"] = Product.objects.filter(
-                is_variation=False)
+            # Показываем только базовые товары из основного каталога
+            kwargs["queryset"] = Product.objects.filter(is_variation=False)
             return db_field.formfield(**kwargs)
         return super().formfield_for_foreignkey(db_field, request, **kwargs)
 
@@ -102,11 +92,46 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
 
     actions = ['publish_products', 'unpublish_products']
 
+    def create_product_in_marketplace(self, product, base_product=None):
+        """Вспомогательный метод для создания товара в основном каталоге"""
+        new_product = Product.objects.create(
+            name=product.name or product.name_en,
+            name_en=product.name_en,
+            vendor_code=product.vendor_code,
+            price=product.price or 0,
+            status=product.status,
+            description=product.description or "",
+            brand=product.brand,
+            manufacturer_country=product.manufacturer_country,
+            form=product.form,
+            flavor=product.flavor or "",
+            dosage=product.dosage or "",
+            sale_price=product.sale_price,
+            is_hit=product.is_hit or False,
+            is_sale=product.is_sale or False,
+            is_recommend=product.is_recommend or False,
+            quantity=product.quantity or "",
+            rating=product.rating,
+            seo_keywords=product.seo_keywords or [],
+            is_variation=product.is_variation,
+            base_product=base_product
+        )
+
+        if hasattr(product, 'categories'):
+            new_product.categories.set(product.categories.all())
+
+        for image in product.images.all():
+            ProductImage.objects.create(
+                product=new_product,
+                image=image.image
+            )
+
+        return new_product
+
     @transaction.atomic
     def publish_products(self, request, queryset):
         for product in queryset:
             if not product.published_product:
-                # Проверка обязательных полей
                 if not all([product.brand, product.manufacturer_country]):
                     self.message_user(
                         request,
@@ -117,10 +142,10 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
                     continue
 
                 try:
-                    # Проверяем базовый товар для вариации
                     base_in_marketplace = None
+
+                    # Если это вариация, проверяем базовый товар
                     if product.is_variation:
-                        # Проверяем наличие базового товара
                         if not product.base_product:
                             self.message_user(
                                 request,
@@ -130,59 +155,15 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
                             )
                             continue
 
-                        # Проверяем существование базового товара в основном каталоге
-                        base_in_marketplace = product.base_product  # Теперь base_product - это прямая ссылка на Product
-                        if not base_in_marketplace:
-                            self.message_user(
-                                request,
-                                f'Не удалось найти базовый товар для {product.name_en}',
-                                level=messages.ERROR
-                            )
-                            continue
+                        # Базовый товар уже есть в основном каталоге, используем его
+                        base_in_marketplace = product.base_product
 
-                    # Создаем новый товар
-                    new_product = Product.objects.create(
-                        name=product.name or product.name_en,
-                        name_en=product.name_en,
-                        vendor_code=product.vendor_code,
-                        price=product.price or 0,
-                        status=product.status,
-                        description=product.description or "",
-                        brand=product.brand,
-                        manufacturer_country=product.manufacturer_country,
-                        form=product.form,
-                        flavor=product.flavor or "",
-                        dosage=product.dosage or "",
-                        sale_price=product.sale_price,
-                        is_hit=product.is_hit or False,
-                        is_sale=product.is_sale or False,
-                        is_recommend=product.is_recommend or False,
-                        quantity=product.quantity or "",
-                        rating=product.rating,
-                        seo_keywords=product.seo_keywords or [],
-                        is_variation=product.is_variation,
-                        base_product=base_in_marketplace
+                    # Создаем новый товар (вариацию или обычный)
+                    new_product = self.create_product_in_marketplace(
+                        product,
+                        base_in_marketplace
                     )
-#sdfsdf
-                    # Добавляем категории
-                    if hasattr(product, 'categories'):
-                        new_product.categories.set(product.categories.all())
 
-                    # Копируем изображения
-                    for image in product.images.all():
-                        try:
-                            ProductImage.objects.create(
-                                product=new_product,
-                                image=image.image
-                            )
-                        except Exception as img_error:
-                            self.message_user(
-                                request,
-                                f'Ошибка при копировании изображения: {str(img_error)}',
-                                level=messages.WARNING
-                            )
-
-                    # Создаем лог
                     SyncLog.objects.create(
                         product_1c=product,
                         sync_type='publish',
@@ -190,7 +171,6 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
                         message='Товар успешно опубликован в основном каталоге'
                     )
 
-                    # Удаляем товар из 1С после успешной публикации
                     product.delete()
 
                     self.message_user(
@@ -214,7 +194,6 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
             main_product = Product.objects.filter(vendor_code=product.vendor_code).first()
             if main_product:
                 main_product.delete()
-
                 SyncLog.objects.create(
                     product_1c=product,
                     sync_type='unpublish',
@@ -236,31 +215,15 @@ class Product1CAdmin(admin.ModelAdmin, DynamicArrayMixin):
                 super().save_model(request, obj, form, change)
                 return
 
-            if obj.is_variation and obj.base_product:
-                base_product = Product.objects.filter(id=obj.base_product.id).first()
-                if not base_product:
-                    messages.error(
-                        request,
-                        'Базовый товар не найден в основном каталоге'
-                    )
-                    obj.published_product = False
-                    super().save_model(request, obj, form, change)
-                    return
+            if obj.is_variation and not obj.base_product:
+                messages.error(
+                    request,
+                    'Для вариации необходимо указать базовый товар'
+                )
+                obj.published_product = False
+                super().save_model(request, obj, form, change)
+                return
 
             self.publish_products(request, Product1C.objects.filter(pk=obj.pk))
         else:
             super().save_model(request, obj, form, change)
-
-
-# @admin.register(SyncLog)
-# class SyncLogAdmin(admin.ModelAdmin):
-#     list_display = ('product_1c', 'sync_type', 'status', 'created_at')
-#     list_filter = ('sync_type', 'status', 'created_at')
-#     search_fields = ('product_1c__name_en', 'product_1c__vendor_code', 'message')
-#     readonly_fields = ('product_1c', 'sync_type', 'status', 'message', 'created_at')
-#
-#     def has_add_permission(self, request):
-#         return False
-#
-#     def has_change_permission(self, request, obj=None):
-#         return False
