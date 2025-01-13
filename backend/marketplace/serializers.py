@@ -130,7 +130,12 @@ class ProductSerializer(serializers.ModelSerializer):
                 'dosage': base_product.dosage,
                 'quantity': base_product.quantity,
                 'in_stock': base_product.status == Product.ProductStatus.in_stock,
-                'product_id': base_product.id
+                'product_id': base_product.id,
+                'price': base_product.price,
+                'sale_price': base_product.sale_price,
+                'current_price': base_product.current_price,
+                'quantity_text': f"{base_product.quantity} шт",
+                'price_text': f"{base_product.current_price}c"
             }]
 
             # Добавляем остальные вариации
@@ -141,7 +146,12 @@ class ProductSerializer(serializers.ModelSerializer):
                     'dosage': variation.dosage,
                     'quantity': variation.quantity,
                     'in_stock': variation.status == Product.ProductStatus.in_stock,
-                    'product_id': variation.id
+                    'product_id': variation.id,
+                    'price': variation.price,
+                    'sale_price': variation.sale_price,
+                    'current_price': variation.current_price,
+                    'quantity_text': f"{variation.quantity} шт",
+                    'price_text': f"{variation.current_price}c"
                 })
         else:
             # Если это базовый товар - получаем все его вариации
@@ -152,7 +162,12 @@ class ProductSerializer(serializers.ModelSerializer):
                 'dosage': variation.dosage,
                 'quantity': variation.quantity,
                 'in_stock': variation.status == Product.ProductStatus.in_stock,
-                'product_id': variation.id
+                'product_id': variation.id,
+                'price': variation.price,
+                'sale_price': variation.sale_price,
+                'current_price': variation.current_price,
+                'quantity_text': f"{variation.quantity} шт",
+                'price_text': f"{variation.current_price}c"
             } for variation in variations]
 
         # Текущий товар
@@ -162,7 +177,12 @@ class ProductSerializer(serializers.ModelSerializer):
             'dosage': obj.dosage,
             'quantity': obj.quantity,
             'in_stock': obj.status == Product.ProductStatus.in_stock,
-            'product_id': obj.id
+            'product_id': obj.id,
+            'price': obj.price,
+            'sale_price': obj.sale_price,
+            'current_price': obj.current_price,
+            'quantity_text': f"{obj.quantity} шт",
+            'price_text': f"{obj.current_price}c"
         }
 
         return {
