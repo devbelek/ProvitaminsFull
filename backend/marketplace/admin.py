@@ -113,6 +113,21 @@ class ProductAdmin(admin.ModelAdmin, DynamicArrayMixin):
             'product1c_variations'
         )
 
+    def formfield_for_foreignkey(self, db_field, request, **kwargs):
+        if db_field.name == "base_product":
+            # Исключаем текущий товар и все вариации из списка
+            if request.resolver_match.kwargs.get('object_id'):
+                current_product = self.get_object(request, request.resolver_match.kwargs['object_id'])
+                kwargs["queryset"] = Product.objects.filter(is_variation=False).exclude(
+                    id__in=Product.objects.filter(is_variation=True).values_list('id', flat=True)
+                ).exclude(id=current_product.id)
+            else:
+                kwargs["queryset"] = Product.objects.filter(is_variation=False).exclude(
+                    id__in=Product.objects.filter(is_variation=True).values_list('id', flat=True)
+                )
+            return db_field.formfield(**kwargs)
+        return super().formfield_for_foreignkey(db_field, request, **kwargs)
+
 
 @admin.register(ProductReview)
 class ProductReviewAdmin(admin.ModelAdmin):

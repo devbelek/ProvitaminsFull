@@ -113,8 +113,34 @@ class ProductSerializer(serializers.ModelSerializer):
         return data
 
     def get_variations(self, obj):
-        base_product = obj.base_product if obj.is_variation else obj
-        variations = obj.marketplace_variations.all() if not obj.is_variation else base_product.marketplace_variations.all()
+        """
+        Получает все вариации для товара.
+        Если это базовый товар - берем его вариации
+        Если это вариация - берем вариации базового товара
+        """
+        if obj.is_variation and obj.base_product:
+            # Если это вариация - получаем базовый товар и все его вариации
+            base_product = obj.base_product
+            variations = base_product.marketplace_variations.exclude(id=obj.id)
+            current = {
+                'id': obj.id,
+                'flavor': obj.flavor,
+                'dosage': obj.dosage,
+                'quantity': obj.quantity,
+                'in_stock': obj.status == Product.ProductStatus.in_stock,
+                'product_id': obj.id
+            }
+        else:
+            # Если это базовый товар - получаем все его вариации
+            variations = obj.marketplace_variations.all()
+            current = {
+                'id': obj.id,
+                'flavor': obj.flavor,
+                'dosage': obj.dosage,
+                'quantity': obj.quantity,
+                'in_stock': obj.status == Product.ProductStatus.in_stock,
+                'product_id': obj.id
+            }
 
         available_variations = []
         for variation in variations:
@@ -128,14 +154,7 @@ class ProductSerializer(serializers.ModelSerializer):
             })
 
         return {
-            'current': {
-                'id': obj.id,
-                'flavor': obj.flavor,
-                'dosage': obj.dosage,
-                'quantity': obj.quantity,
-                'in_stock': obj.status == Product.ProductStatus.in_stock,
-                'product_id': obj.id
-            },
+            'current': current,
             'available_variations': available_variations
         }
 
