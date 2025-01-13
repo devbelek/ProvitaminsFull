@@ -115,43 +115,55 @@ class ProductSerializer(serializers.ModelSerializer):
     def get_variations(self, obj):
         """
         Получает все вариации для товара.
-        Если это базовый товар - берем его вариации
-        Если это вариация - берем вариации базового товара
+        Для вариации: возвращает базовый товар + другие вариации
+        Для базового: возвращает все его вариации
         """
         if obj.is_variation and obj.base_product:
-            # Если это вариация - получаем базовый товар и все его вариации
+            # Если это вариация - возвращаем базовый товар + другие вариации
             base_product = obj.base_product
-            variations = base_product.marketplace_variations.exclude(id=obj.id)
-            current = {
-                'id': obj.id,
-                'flavor': obj.flavor,
-                'dosage': obj.dosage,
-                'quantity': obj.quantity,
-                'in_stock': obj.status == Product.ProductStatus.in_stock,
-                'product_id': obj.id
-            }
+            variations = list(base_product.marketplace_variations.exclude(id=obj.id))
+
+            # Добавляем базовый товар в список вариаций
+            available_variations = [{
+                'id': base_product.id,
+                'flavor': base_product.flavor,
+                'dosage': base_product.dosage,
+                'quantity': base_product.quantity,
+                'in_stock': base_product.status == Product.ProductStatus.in_stock,
+                'product_id': base_product.id
+            }]
+
+            # Добавляем остальные вариации
+            for variation in variations:
+                available_variations.append({
+                    'id': variation.id,
+                    'flavor': variation.flavor,
+                    'dosage': variation.dosage,
+                    'quantity': variation.quantity,
+                    'in_stock': variation.status == Product.ProductStatus.in_stock,
+                    'product_id': variation.id
+                })
         else:
             # Если это базовый товар - получаем все его вариации
             variations = obj.marketplace_variations.all()
-            current = {
-                'id': obj.id,
-                'flavor': obj.flavor,
-                'dosage': obj.dosage,
-                'quantity': obj.quantity,
-                'in_stock': obj.status == Product.ProductStatus.in_stock,
-                'product_id': obj.id
-            }
-
-        available_variations = []
-        for variation in variations:
-            available_variations.append({
+            available_variations = [{
                 'id': variation.id,
                 'flavor': variation.flavor,
                 'dosage': variation.dosage,
                 'quantity': variation.quantity,
                 'in_stock': variation.status == Product.ProductStatus.in_stock,
                 'product_id': variation.id
-            })
+            } for variation in variations]
+
+        # Текущий товар
+        current = {
+            'id': obj.id,
+            'flavor': obj.flavor,
+            'dosage': obj.dosage,
+            'quantity': obj.quantity,
+            'in_stock': obj.status == Product.ProductStatus.in_stock,
+            'product_id': obj.id
+        }
 
         return {
             'current': current,
