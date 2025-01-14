@@ -22,6 +22,7 @@ async function MobileProducts({
   brands,
   countries,
 }: Props) {
+  
   const data = await getProducts({
     params: { ...searchParams.searchParams, limit: "40" },
   });

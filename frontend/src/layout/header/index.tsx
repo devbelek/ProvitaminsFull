@@ -22,6 +22,7 @@ function Header({ contacts }: Props) {
 
   const catalog = searchParams.get("catalog");
   const category = searchParams.get("category");
+  const catalogue = searchParams.get("catalogue");
 
   const title = searchParams.get("name");
 
@@ -29,7 +30,8 @@ function Header({ contacts }: Props) {
 
   const withBack =
     (pathname === "/catalog" && catalog) ||
-    (pathname === "/catalog" && category);
+    (pathname === "/catalog" && category) ||
+    (pathname === "/catalog" && catalogue);
 
   return (
     <header className="border-b border-stroke shadow-sm">

@@ -57,8 +57,6 @@ export async function getCatalog({ id }: { id: number }) {
     { cache: "no-cache" }
   );
 
-  console.log(response)
-
   return (await response.json()) as Catalog;
 }
 
