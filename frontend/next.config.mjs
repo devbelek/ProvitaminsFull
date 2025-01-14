@@ -8,9 +8,11 @@ const nextConfig = {
       {
         protocol: "http",
         hostname: process.env.IMAGE_URL,
-        pathname: "**",
+        port: '',
+        pathname: '/media/**',
       },
     ],
+    minimumCacheTTL: 60,
   },
 };
 
