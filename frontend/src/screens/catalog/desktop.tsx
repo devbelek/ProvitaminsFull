@@ -18,6 +18,7 @@ export interface CatalogPageProps {
   searchParams: {
     brand?: string | string[];
     category?: string | string[];
+    catalogue?: string | string[];  
     sub_category?: string | string[];
     form?: string | string[];
     manufacturer_country?: string | string[];
@@ -43,7 +44,9 @@ async function Desktop({ searchParams }: CatalogPageProps) {
     id: Number(searchParams.sub_category),
   });
 
-  const catalog = await getCatalog({ id: category.catalogue });
+  const catalog = await getCatalog({
+    id: Number(searchParams.catalogue),
+  });
 
   const location = [
     {
@@ -51,9 +54,8 @@ async function Desktop({ searchParams }: CatalogPageProps) {
       name: "Главная",
     },
     {
-      href: `/catalog?catalog=${catalog.id}`,
+      href: `/catalog?catalogue=${catalog.id}`,
       name: catalog.name,
-      disabled: true,
     },
     {
       href: `/catalog?category=${category.id}`,
@@ -87,7 +89,9 @@ async function Desktop({ searchParams }: CatalogPageProps) {
               </div>
               <div className="w-full flex flex-col gap-7">
                 <div>
-                  <Divider title={sub_category.name || category.name} />
+                  <Divider
+                    title={sub_category.name || category.name || catalog.name}
+                  />
                 </div>
                 <div className="flex items-center justify-between">
                   <SortBar />

@@ -17,7 +17,7 @@ function CatalogItemMasonry({ catalog, setHovered }: Props) {
               <div>
                 <Link
                   className="font-semibold hover:text-main inline-block"
-                  href={`/catalog?category=${id}`}
+                  href={`/catalog?catalogue=${catalog.id}&category=${id}`}
                   key={id}
                   onClick={() => setHovered(false)}
                 >
@@ -28,7 +28,7 @@ function CatalogItemMasonry({ catalog, setHovered }: Props) {
                 <div key={sub_id}>
                   <Link
                     className="hover:text-main inline-block"
-                    href={`/catalog?category=${id}&sub_category=${sub_id}`}
+                    href={`/catalog?catalogue=${catalog.id}&category=${id}&sub_category=${sub_id}`}
                     onClick={() => setHovered(false)}
                   >
                     {name}

@@ -9,7 +9,7 @@ import { getCountries } from "@/src/api/countries";
 
 async function Mobile({ searchParams }: CatalogPageProps) {
   const isCatalogSelected = !!searchParams.catalog || !!searchParams.category;
-  const isCategorySelected = !!searchParams.category;
+  const isCategorySelected = !!searchParams.category || !!searchParams.catalogue;
   const isFiltersOpened = searchParams.filters;
 
   const forms = await getProductForms();

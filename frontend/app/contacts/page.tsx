@@ -82,7 +82,7 @@ async function Page() {
                 </li>
                 <li className="hover:text-main">
                   <a href={`#`} className="flex items-center gap-2">
-                    <div className="relative w-9 aspect-square">
+                    <div className="relative w-[36px] min-w-[36px] max-w-[36px] aspect-square">
                       <Image
                         src="/images/global/contacts/location.svg"
                         alt="social"
@@ -96,7 +96,7 @@ async function Page() {
                 </li>
                 {contacts.address_extra ? <li className="hover:text-main">
                   <a href={`#`} className="flex items-center gap-2">
-                    <div className="relative w-9 aspect-square">
+                    <div className="relative w-[36px] min-w-[36px] max-w-[36px] aspect-square">
                       <Image
                         src="/images/global/contacts/location.svg"
                         alt="social"

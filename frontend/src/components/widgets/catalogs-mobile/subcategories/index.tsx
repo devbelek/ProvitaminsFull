@@ -6,9 +6,19 @@ async function MobileSubcategories({ searchParams }: CatalogPageProps) {
   const categories = await getCategories({
     searchParams,
   });
+
   return (
     <div className="w-full">
       <ul className="border border-stroke rounded-[10px] w-full p-4">
+          {/* <li className="flex flex-col gap-1 py-2.5">
+            <Link
+              className="font-semibold hover:text-main inline-block"
+              href={`/catalog?catalogue=1&name=Продукция%20iHerb`}
+              
+            >
+              Продукция
+            </Link>
+            </li> */}
         {categories.map(({ id, name, children }) => (
           <li key={id} className="flex flex-col gap-1 py-2.5">
             <Link

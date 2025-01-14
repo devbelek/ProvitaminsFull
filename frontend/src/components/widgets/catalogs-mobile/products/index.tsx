@@ -4,7 +4,6 @@ import ProductList from "../../product-list";
 import { getProducts } from "@/src/api/products";
 import { CatalogPageProps } from "@/src/screens/catalog/desktop";
 import Pagination from "../../pagination";
-import { convertObjectToSearchParams } from "@/src/helpers/convertToSearchParams";
 import MobileFilters from "../../filters/mobile";
 import { ProductForm } from "../../filters/product-form";
 import { Country } from "../../filters/country";
