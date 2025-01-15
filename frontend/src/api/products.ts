@@ -45,22 +45,20 @@ export interface Product {
       id: number;
       flavor: string;
       dosage: string;
-      price: number,
+      price: number;
       quantity: number;
       in_stock: boolean;
       product_id: number;
     };
-    available_variations: [
-      {
-        id: number;
-        flavor: string;
-        dosage: string;
-        quantity: number;
-        price: number,
-        in_stock: boolean;
-        product_id: number;
-      }
-    ];
+    available_variations: Array<{
+      id: number;
+      flavor: string;
+      dosage: string;
+      quantity: number;
+      price: number;
+      in_stock: boolean;
+      product_id: number;
+    }>;
   };
   images: {
     id: number;
