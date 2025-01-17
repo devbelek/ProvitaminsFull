@@ -4,6 +4,7 @@ const nextConfig = {
     missingSuspenseWithCSRBailout: false,
   },
   images: {
+    domains: [process.env.IMAGE_URL],
     remotePatterns: [
       {
         protocol: "http",
