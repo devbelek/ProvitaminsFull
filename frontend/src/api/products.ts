@@ -15,6 +15,15 @@ export interface ProductReview {
   product: number;
 }
 
+export interface Variation {
+  id: number;
+  flavor: string;
+  dosage: string;
+  quantity: string;
+  in_stock: boolean;
+  price: number;
+}
+
 export interface Product {
   id: number;
   category_name: string;
@@ -41,24 +50,8 @@ export interface Product {
   manufacturer_country: number;
   form: number;
   variations: {
-    current: {
-      id: number;
-      flavor: string;
-      dosage: string;
-      price: number;
-      quantity: number;
-      in_stock: boolean;
-      product_id: number;
-    };
-    available_variations: Array<{
-      id: number;
-      flavor: string;
-      dosage: string;
-      quantity: number;
-      price: number;
-      in_stock: boolean;
-      product_id: number;
-    }>;
+    current: Variation;
+    available_variations: Variation[];
   };
   images: {
     id: number;
